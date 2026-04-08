@@ -1098,7 +1098,7 @@ var registerAuthCommands = (program, context) => {
 import { z as z2 } from "zod";
 
 // src/core/localConfig.ts
-import { existsSync as existsSync2, mkdirSync as mkdirSync2, readFileSync as readFileSync2, writeFileSync as writeFileSync2 } from "node:fs";
+import { existsSync as existsSync2, mkdirSync as mkdirSync2, readFileSync as readFileSync2, writeFileSync as writeFileSync2, unlinkSync } from "node:fs";
 import { dirname as dirname2, join as join2 } from "node:path";
 import { homedir as homedir2 } from "node:os";
 var resolveConfigHome2 = (env) => {
@@ -1140,6 +1140,13 @@ var writeVisionboardCliConfig = (patch, env = process.env) => {
   mkdirSync2(dirname2(configFilePath), { recursive: true });
   writeFileSync2(configFilePath, `${JSON.stringify(next, null, 2)}
 `, "utf8");
+  return configFilePath;
+};
+var clearVisionboardCliConfig = (env = process.env) => {
+  const configFilePath = getVisionboardConfigFilePath(env);
+  if (existsSync2(configFilePath)) {
+    unlinkSync(configFilePath);
+  }
   return configFilePath;
 };
 
@@ -1443,6 +1450,7 @@ var ConfigSetOptionsSchema = z2.object({
   appBaseUrl: z2.string().url().optional()
 });
 var ConfigShowOptionsSchema = z2.object({}).passthrough();
+var ConfigClearOptionsSchema = z2.object({}).passthrough();
 var readLongOptionValue = (argv, optionName) => {
   const exactToken = `--${optionName}`;
   const prefixedToken = `${exactToken}=`;
@@ -1477,6 +1485,14 @@ var configShowHandler = async (_options, context) => {
     }
   };
 };
+var configClearHandler = async (_options, context) => {
+  const configFilePath = clearVisionboardCliConfig(context.env);
+  console.log(`[config.clear] Cleared CLI configuration from ${configFilePath}`);
+  return {
+    configFilePath,
+    cleared: true
+  };
+};
 var registerConfigCommands = (program, context) => {
   const configCommand = program.command("config").description("Manage persistent CLI configuration");
   configCommand.command("show").description("Show stored and effective CLI configuration").action(
@@ -1485,6 +1501,14 @@ var registerConfigCommands = (program, context) => {
       commandName: "config.show",
       schema: ConfigShowOptionsSchema,
       handler: configShowHandler
+    })
+  );
+  configCommand.command("clear").description("Clear persistent CLI configuration").action(
+    createCommandAction({
+      context,
+      commandName: "config.clear",
+      schema: ConfigClearOptionsSchema,
+      handler: configClearHandler
     })
   );
   configCommand.command("set").description("Persist app/functions URLs for deployed usage").option("--functions-base-url <url>", "Callable Functions base URL").option("--app-base-url <url>", "App base URL used by browser auth").action(async (rawOptions) => {
@@ -2599,7 +2623,7 @@ var CallableWorkflowTransport = class {
     } catch (error) {
       throw new CliError({
         type: "auth_error",
-        message: "Callable transport requires a reachable Functions backend and a valid Firebase ID token.",
+        message: `Callable transport requires a reachable Functions backend and a valid Firebase ID token. Network error: ${error instanceof Error ? error.message : String(error)}`,
         exitCode: EXIT_CODES.AUTH,
         cause: error
       });
@@ -2630,7 +2654,7 @@ var CallableWorkflowTransport = class {
     } catch (error) {
       throw new CliError({
         type: "auth_error",
-        message: "Callable transport requires a reachable Functions backend and a valid Firebase ID token.",
+        message: `Callable transport requires a reachable Functions backend and a valid Firebase ID token. Network error: ${error instanceof Error ? error.message : String(error)}`,
         exitCode: EXIT_CODES.AUTH,
         cause: error
       });
@@ -2666,7 +2690,7 @@ var CallableWorkflowTransport = class {
     } catch (error) {
       throw new CliError({
         type: "auth_error",
-        message: "Callable transport requires a reachable Functions backend and a valid Firebase ID token.",
+        message: `Callable transport requires a reachable Functions backend and a valid Firebase ID token. Network error: ${error instanceof Error ? error.message : String(error)}`,
         exitCode: EXIT_CODES.AUTH,
         cause: error
       });
@@ -2756,7 +2780,7 @@ var CallableWorkflowTransport = class {
     } catch (error) {
       throw new CliError({
         type: "auth_error",
-        message: "Callable transport requires a reachable Functions backend and a valid Firebase ID token.",
+        message: `Callable transport requires a reachable Functions backend and a valid Firebase ID token. Network error: ${error instanceof Error ? error.message : String(error)}`,
         exitCode: EXIT_CODES.AUTH,
         cause: error
       });
@@ -2791,7 +2815,7 @@ var CallableWorkflowTransport = class {
     } catch (error) {
       throw new CliError({
         type: "auth_error",
-        message: "Callable transport requires a reachable Functions backend and a valid Firebase ID token.",
+        message: `Callable transport requires a reachable Functions backend and a valid Firebase ID token. Network error: ${error instanceof Error ? error.message : String(error)}`,
         exitCode: EXIT_CODES.AUTH,
         cause: error
       });
@@ -2822,7 +2846,7 @@ var CallableWorkflowTransport = class {
     } catch (error) {
       throw new CliError({
         type: "auth_error",
-        message: "Callable transport requires a reachable Functions backend and a valid Firebase ID token.",
+        message: `Callable transport requires a reachable Functions backend and a valid Firebase ID token. Network error: ${error instanceof Error ? error.message : String(error)}`,
         exitCode: EXIT_CODES.AUTH,
         cause: error
       });
@@ -2853,7 +2877,7 @@ var CallableWorkflowTransport = class {
     } catch (error) {
       throw new CliError({
         type: "auth_error",
-        message: "Callable transport requires a reachable Functions backend and a valid Firebase ID token.",
+        message: `Callable transport requires a reachable Functions backend and a valid Firebase ID token. Network error: ${error instanceof Error ? error.message : String(error)}`,
         exitCode: EXIT_CODES.AUTH,
         cause: error
       });
@@ -2884,7 +2908,7 @@ var CallableWorkflowTransport = class {
     } catch (error) {
       throw new CliError({
         type: "auth_error",
-        message: "Callable transport requires a reachable Functions backend and a valid Firebase ID token.",
+        message: `Callable transport requires a reachable Functions backend and a valid Firebase ID token. Network error: ${error instanceof Error ? error.message : String(error)}`,
         exitCode: EXIT_CODES.AUTH,
         cause: error
       });
@@ -2915,7 +2939,7 @@ var CallableWorkflowTransport = class {
     } catch (error) {
       throw new CliError({
         type: "auth_error",
-        message: "Callable transport requires a reachable Functions backend and a valid Firebase ID token.",
+        message: `Callable transport requires a reachable Functions backend and a valid Firebase ID token. Network error: ${error instanceof Error ? error.message : String(error)}`,
         exitCode: EXIT_CODES.AUTH,
         cause: error
       });
@@ -2932,8 +2956,9 @@ var CallableWorkflowTransport = class {
     return import_catalog.ProjectListResultSchema.parse(payload);
   }
   async getCredits() {
+    let response;
     try {
-      const response = await this.fetchImpl(createFunctionsUrl(this.baseUrl, "getUserCredits"), {
+      response = await this.fetchImpl(createFunctionsUrl(this.baseUrl, "getUserCredits"), {
         method: "POST",
         headers: {
           Accept: "application/json",
@@ -2942,6 +2967,15 @@ var CallableWorkflowTransport = class {
         },
         body: JSON.stringify({})
       });
+    } catch (error) {
+      throw new CliError({
+        type: "auth_error",
+        message: `Callable transport requires a reachable Functions backend and a valid Firebase ID token. Network error: ${error instanceof Error ? error.message : String(error)}`,
+        exitCode: EXIT_CODES.AUTH,
+        cause: error
+      });
+    }
+    try {
       const text = await response.text();
       const payload = JSON.parse(text);
       return payload?.credits ?? 0;
@@ -2964,7 +2998,7 @@ var CallableWorkflowTransport = class {
     } catch (error) {
       throw new CliError({
         type: "auth_error",
-        message: "Callable transport requires a reachable Functions backend and a valid Firebase ID token.",
+        message: `Callable transport requires a reachable Functions backend and a valid Firebase ID token. Network error: ${error instanceof Error ? error.message : String(error)}`,
         exitCode: EXIT_CODES.AUTH,
         cause: error
       });
@@ -3000,7 +3034,7 @@ var CallableWorkflowTransport = class {
     } catch (error) {
       throw new CliError({
         type: "auth_error",
-        message: "Callable transport requires a reachable Functions backend and a valid Firebase ID token.",
+        message: `Callable transport requires a reachable Functions backend and a valid Firebase ID token. Network error: ${error instanceof Error ? error.message : String(error)}`,
         exitCode: EXIT_CODES.AUTH,
         cause: error
       });
