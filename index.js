@@ -3024,7 +3024,7 @@ var CallableWorkflowTransport = class {
 };
 
 // src/transports/resolveWorkflowTransport.ts
-var resolveWorkflowTransport = (runtimeConfig) => {
+var resolveWorkflowTransport = (runtimeConfig, commandName) => {
   if (runtimeConfig.transportMode === "mock") {
     return new MockWorkflowTransport();
   }
@@ -3048,6 +3048,10 @@ var resolveWorkflowTransport = (runtimeConfig) => {
   }
   if (hasCallableConfig) {
     return new CallableWorkflowTransport(runtimeConfig.functionsBaseUrl, runtimeConfig.firebaseIdToken);
+  }
+  const isAuthCommand = commandName && commandName.startsWith("auth");
+  if (isAuthCommand) {
+    return new MockWorkflowTransport();
   }
   if (!runtimeConfig.functionsBaseUrl) {
     throw new CliError({
@@ -3974,7 +3978,8 @@ var runCli = async (argv, options) => {
   const restoreConsole = output.captureConsole();
   let exitCode = EXIT_CODES.SUCCESS;
   try {
-    context.transport = options?.transportOverride ?? resolveWorkflowTransport(runtimeConfig);
+    const commandName = inferCommandNameFromArgv(argv, context.commandName);
+    context.transport = options?.transportOverride ?? resolveWorkflowTransport(runtimeConfig, commandName);
     const program = createProgram(context);
     await program.parseAsync(argv);
   } catch (error) {
