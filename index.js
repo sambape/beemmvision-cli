@@ -476,9 +476,10 @@ var createErrorResponse = (command, error, logs) => ({
 
 // src/core/commandAction.ts
 var createCommandAction = (options) => {
-  return async (rawOptions) => {
+  return async (rawOptions, command) => {
     options.context.commandName = options.commandName;
-    const parsedOptions = options.schema.parse(rawOptions);
+    const opts = command?.opts ? command.opts() : rawOptions;
+    const parsedOptions = options.schema.parse(opts);
     const result = await options.handler(parsedOptions, options.context);
     options.context.response = createSuccessResponse(
       options.commandName,
@@ -544,12 +545,62 @@ var decodeBase64Url = (value) => {
   const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "=");
   return Buffer.from(padded, "base64").toString("utf8");
 };
+var EXPECTED_ISSUER_PREFIX = "https://securetoken.google.com/";
+var getExpectedAudience = () => {
+  return process.env.VISIONBOARD_EXPECTED_TOKEN_AUDIENCE;
+};
 var decodeFirebaseIdTokenClaims = (token) => {
   const parts = token.split(".");
-  if (parts.length < 2) {
-    throw new Error("Invalid Firebase ID token format.");
+  if (parts.length !== 3) {
+    throw new Error("Invalid Firebase ID token format. Expected 3 parts separated by dots.");
   }
-  return JSON.parse(decodeBase64Url(parts[1]));
+  let claims;
+  try {
+    claims = JSON.parse(decodeBase64Url(parts[1]));
+  } catch {
+    throw new Error("Invalid Firebase ID token: failed to decode payload.");
+  }
+  const iss = claims.iss;
+  if (typeof iss !== "string" || !iss.startsWith(EXPECTED_ISSUER_PREFIX)) {
+    throw new Error(
+      `Invalid Firebase ID token: issuer (iss) does not match expected prefix. Got: "${iss}"`
+    );
+  }
+  const projectIdFromIss = iss.slice(EXPECTED_ISSUER_PREFIX.length);
+  const aud = claims.aud;
+  if (typeof aud !== "string" || !aud.trim()) {
+    throw new Error("Invalid Firebase ID token: audience (aud) is missing.");
+  }
+  const expectedAudience = getExpectedAudience();
+  if (expectedAudience) {
+    if (aud !== expectedAudience && aud !== projectIdFromIss) {
+      throw new Error(
+        `Invalid Firebase ID token: audience (aud) "${aud}" does not match expected "${expectedAudience}" or project "${projectIdFromIss}".`
+      );
+    }
+  } else {
+    if (aud !== projectIdFromIss) {
+      throw new Error(
+        `Invalid Firebase ID token: audience (aud) "${aud}" does not match project ID from issuer "${projectIdFromIss}".`
+      );
+    }
+  }
+  const exp = claims.exp;
+  if (typeof exp !== "number") {
+    throw new Error("Invalid Firebase ID token: expiration (exp) is missing.");
+  }
+  const now = Math.floor(Date.now() / 1e3);
+  if (exp < now) {
+    throw new Error(
+      `Firebase ID token has expired. Expired at ${new Date(exp * 1e3).toISOString()}, current time is ${new Date(now * 1e3).toISOString()}.`
+    );
+  }
+  const sub = claims.sub;
+  const userId = claims.user_id;
+  if (typeof sub !== "string" && typeof userId !== "string") {
+    throw new Error("Invalid Firebase ID token: subject (sub/user_id) is missing.");
+  }
+  return claims;
 };
 var getFirebaseTokenAudience = (token) => {
   try {
@@ -2998,7 +3049,21 @@ var resolveWorkflowTransport = (runtimeConfig) => {
   if (hasCallableConfig) {
     return new CallableWorkflowTransport(runtimeConfig.functionsBaseUrl, runtimeConfig.firebaseIdToken);
   }
-  return new MockWorkflowTransport();
+  if (!runtimeConfig.functionsBaseUrl) {
+    throw new CliError({
+      type: "validation_error",
+      message: "Missing functions base URL. Please ensure your configuration is correct.",
+      exitCode: EXIT_CODES.VALIDATION
+    });
+  }
+  if (!runtimeConfig.firebaseIdToken) {
+    throw new CliError({
+      type: "auth_error",
+      message: "You must be logged in to use this command. Please run `auth login` or set VISIONBOARD_FIREBASE_ID_TOKEN.",
+      exitCode: EXIT_CODES.AUTH
+    });
+  }
+  return new CallableWorkflowTransport(runtimeConfig.functionsBaseUrl, runtimeConfig.firebaseIdToken);
 };
 
 // src/core/pricing.ts
@@ -3793,8 +3858,8 @@ var parseRuntimeConfig = async (argv, env = process.env) => {
   );
   const cliFunctionsBaseUrl = readCliOption(argv, "functions-base-url");
   const envFunctionsBaseUrl = env.VISIONBOARD_FUNCTIONS_BASE_URL || void 0;
-  const functionsBaseUrl = cliFunctionsBaseUrl || envFunctionsBaseUrl || storedConfig.functionsBaseUrl || void 0;
-  const functionsBaseUrlSource = cliFunctionsBaseUrl ? "cli" : envFunctionsBaseUrl ? "env" : storedConfig.functionsBaseUrl ? "config" : "missing";
+  const functionsBaseUrl = cliFunctionsBaseUrl || envFunctionsBaseUrl || storedConfig.functionsBaseUrl || "https://us-central1-beemm-vision.cloudfunctions.net";
+  const functionsBaseUrlSource = cliFunctionsBaseUrl ? "cli" : envFunctionsBaseUrl ? "env" : storedConfig.functionsBaseUrl ? "config" : "default";
   const cliFirebaseIdToken = readCliOption(argv, "firebase-id-token");
   const envFirebaseIdToken = env.VISIONBOARD_FIREBASE_ID_TOKEN || void 0;
   const storedFirebaseIdToken = await getValidFirebaseIdToken(env);
@@ -3818,13 +3883,20 @@ var parseRuntimeConfig = async (argv, env = process.env) => {
 
 // src/core/runner.ts
 var detectJsonFlag = (argv) => argv.includes("--json");
-var inferCommandNameFromArgv = (argv) => {
-  const tokens = argv.slice(2).filter((token) => token && !token.startsWith("-"));
-  if (tokens.length >= 2) {
-    return `${tokens[0]}.${tokens[1]}`;
+var inferCommandNameFromArgv = (argv, parsedCommandName) => {
+  if (parsedCommandName) {
+    return parsedCommandName;
   }
-  if (tokens.length === 1) {
-    return tokens[0];
+  const tokens = argv.slice(2).filter((token) => token && !token.startsWith("-"));
+  const commandTokens = tokens.filter((t) => !["auto", "mock", "callable"].includes(t));
+  if (commandTokens.length >= 2) {
+    if (["doctor", "credits"].includes(commandTokens[0])) {
+      return commandTokens[0];
+    }
+    return `${commandTokens[0]}.${commandTokens[1]}`;
+  }
+  if (commandTokens.length === 1) {
+    return commandTokens[0];
   }
   return "visionboard";
 };
@@ -3911,7 +3983,7 @@ var runCli = async (argv, options) => {
     } else {
       const cliError = error instanceof CommanderError2 ? commanderErrorToCliError(error) : normalizeError(error);
       exitCode = cliError.exitCode;
-      const commandName = context.commandName ?? inferCommandNameFromArgv(argv);
+      const commandName = inferCommandNameFromArgv(argv, context.commandName);
       if (jsonMode) {
         context.response = createErrorResponse(
           commandName,
@@ -3932,7 +4004,7 @@ var runCli = async (argv, options) => {
   if (jsonMode) {
     if (!context.response) {
       context.response = createErrorResponse(
-        context.commandName ?? inferCommandNameFromArgv(argv),
+        inferCommandNameFromArgv(argv, context.commandName),
         {
           type: "validation_error",
           message: "No command was executed"
