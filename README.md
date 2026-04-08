@@ -1,6 +1,7 @@
  # VisionBoard CLI Reference
 
 > Command-line interface pour gérer vos workflows BEEMM-JAM de manière programmatique.
+> Note: Les commandes `beemmvision` et `visionboard` sont 100% équivalentes et peuvent être utilisées de manière interchangeable.
 
 ---
 
@@ -14,9 +15,9 @@ npm install -g @beemm/visionboard-cli
 
 # Ou utilisation locale depuis le repo
 cd cli && npm install
-npm link
+npm link --force
 
-# Si 'visionboard' n'est pas reconnu après 'npm link', vous pouvez utiliser les exécutables locaux à la racine du projet :
+# Si 'beemmvision' n'est pas reconnu après 'npm link', vous pouvez utiliser les exécutables locaux à la racine du projet :
 cd ..
 ./visionboard auth login
 ```
@@ -27,26 +28,26 @@ Avant toute utilisation, connectez-vous à votre compte BEEMM :
 
 ```bash
 # Se connecter (ouvre le navigateur)
-visionboard auth login
+beemmvision auth login
 
 # Vérifier le statut
-visionboard auth whoami
+beemmvision auth whoami
 
 # Se déconnecter
-visionboard auth logout
+beemmvision auth logout
 ```
 
 ### Configuration du projet
 
 ```bash
 # Lister vos projets
-visionboard project list --type workflow
+beemmvision project list --type workflow
 
 # Définir le projet courant
-visionboard project use --project-id your-project-id
+beemmvision project use --project-id your-project-id
 
 # Vérifier le projet courant
-visionboard project current
+beemmvision project current
 ```
 
 ---
@@ -62,7 +63,7 @@ Gestion de l'authentification Firebase.
 Démarre le flux d'authentification OAuth via le navigateur.
 
 ```bash
-visionboard auth login
+beemmvision auth login
 ```
 
 #### `auth whoami`
@@ -70,7 +71,7 @@ visionboard auth login
 Affiche l'état de la connexion courante.
 
 ```bash
-visionboard auth whoami
+beemmvision auth whoami
 ```
 
 **Sortie :**
@@ -88,7 +89,7 @@ visionboard auth whoami
 Déconnecte l'utilisateur courante.
 
 ```bash
-visionboard auth logout
+beemmvision auth logout
 ```
 
 ---
@@ -103,16 +104,16 @@ Liste tous les projets accessibles par l'utilisateur.
 
 ```bash
 # Tous les projets
-visionboard project list
+beemmvision project list
 
 # Uniquement les workflows
-visionboard project list --type workflow
+beemmvision project list --type workflow
 
 # Uniquement les boards
-visionboard project list --type board
+beemmvision project list --type board
 
 # Format JSON
-visionboard project list --json
+beemmvision project list --json
 ```
 
 **Options :**
@@ -127,7 +128,7 @@ visionboard project list --json
 Stocke un ID de projet localement pour éviter de le répéter dans les commandes suivantes.
 
 ```bash
-visionboard project use --project-id your-project-id
+beemmvision project use --project-id your-project-id
 ```
 
 **Options :**
@@ -141,7 +142,7 @@ visionboard project use --project-id your-project-id
 Affiche le projet courant stocké localement.
 
 ```bash
-visionboard project current
+beemmvision project current
 ```
 
 #### `project clear`
@@ -149,7 +150,7 @@ visionboard project current
 Supprime le projet stocké localement.
 
 ```bash
-visionboard project clear
+beemmvision project clear
 ```
 
 ---
@@ -163,13 +164,13 @@ Opérations principales sur les workflows.
 Liste tous les workflows d'un projet.
 
 ```bash
-visionboard workflow list --project-id your-project-id
+beemmvision workflow list --project-id your-project-id
 
 # Avec projet courant
-visionboard workflow list
+beemmvision workflow list
 
 # Format JSON
-visionboard workflow list --json
+beemmvision workflow list --json
 ```
 
 **Sortie JSON :**
@@ -205,13 +206,13 @@ visionboard workflow list --json
 Exporte un workflow complet en document JSON portable.
 
 ```bash
-visionboard workflow export --project-id your-project-id --workflow-id default
+beemmvision workflow export --project-id your-project-id --workflow-id default
 
 # Sauvegarder dans un fichier
-visionboard workflow export --project-id X --workflow-id default > my-workflow.json
+beemmvision workflow export --project-id X --workflow-id default > my-workflow.json
 
 # Format JSON
-visionboard workflow export --project-id X --workflow-id default --json
+beemmvision workflow export --project-id X --workflow-id default --json
 ```
 
 **Sortie JSON :**
@@ -267,13 +268,13 @@ visionboard workflow export --project-id X --workflow-id default --json
 Importe un workflow depuis un document JSON portable. Par défaut, remplace tous les nodes et edges existants.
 
 ```bash
-visionboard workflow import --project-id X --workflow-id default --input my-workflow.json
+beemmvision workflow import --project-id X --workflow-id default --input my-workflow.json
 
 # Mode append (ajoute les nodes à côté de l'existant)
-visionboard workflow import --project-id X --workflow-id default --input my-workflow.json --mode append
+beemmvision workflow import --project-id X --workflow-id default --input my-workflow.json --mode append
 
 # Format JSON
-visionboard workflow import --project-id X --workflow-id default --input my-workflow.json --json
+beemmvision workflow import --project-id X --workflow-id default --input my-workflow.json --json
 ```
 
 **Options :**
@@ -308,10 +309,10 @@ Exécute un workflow et collecte les résultats (artifacts, images générées, 
 
 ```bash
 # Execution avec affichage humain
-visionboard workflow run --project-id X --workflow-id default
+beemmvision workflow run --project-id X --workflow-id default
 
 # Execution avec sortie JSON
-visionboard workflow run --project-id X --workflow-id default --json
+beemmvision workflow run --project-id X --workflow-id default --json
 ```
 
 **Sortie humaine :**
@@ -377,20 +378,20 @@ image output: https://storage.beemm.ai/outputs/abc123.png
 Génère un workflow automatiquement à partir d'une description textuelle en utilisant l'agent AI Samy.
 
 ```bash
-visionboard workflow samy-generate \
+beemmvision workflow samy-generate \
   --project-id X \
   --workflow-id my-generated \
   --prompt "Crée un workflow qui génère une image, puis la redimensionne en carré"
 
 # Avec un nom personnalisé
-visionboard workflow samy-generate \
+beemmvision workflow samy-generate \
   --project-id X \
   --workflow-id my-generated \
   --prompt "..." \
   --name "Mon workflow généré"
 
 # Format JSON
-visionboard workflow samy-generate --project-id X --workflow-id Y --prompt "..." --json
+beemmvision workflow samy-generate --project-id X --workflow-id Y --prompt "..." --json
 ```
 
 **Options :**
@@ -410,7 +411,7 @@ visionboard workflow samy-generate --project-id X --workflow-id Y --prompt "..."
 Combine la génération AI et l'import en une seule commande.
 
 ```bash
-visionboard workflow generate-and-import \
+beemmvision workflow generate-and-import \
   --project-id X \
   --workflow-id default \
   --prompt "Crée un pipeline de génération d'images avec 3 styles différents"
@@ -433,7 +434,7 @@ visionboard workflow generate-and-import \
 Le workflow complet en une seule commande : générer, importer, et exécuter.
 
 ```bash
-visionboard workflow generate-import-run \
+beemmvision workflow generate-import-run \
   --project-id X \
   --workflow-id default \
   --prompt "Génère une image de paysage"
@@ -460,10 +461,10 @@ Gestion des templates communautaires.
 Liste les templates disponibles dans la communauté.
 
 ```bash
-visionboard template list
+beemmvision template list
 
 # Format JSON
-visionboard template list --json
+beemmvision template list --json
 ```
 
 #### `template get`
@@ -471,10 +472,10 @@ visionboard template list --json
 Récupère les détails d'un template.
 
 ```bash
-visionboard template get --template-id template-123
+beemmvision template get --template-id template-123
 
 # Format JSON
-visionboard template get --template-id template-123 --json
+beemmvision template get --template-id template-123 --json
 ```
 
 #### `template duplicate`
@@ -482,10 +483,10 @@ visionboard template get --template-id template-123 --json
 Duplique un template dans votre projet.
 
 ```bash
-visionboard template duplicate --template-id template-123
+beemmvision template duplicate --template-id template-123
 
 # Format JSON
-visionboard template duplicate --template-id template-123 --json
+beemmvision template duplicate --template-id template-123 --json
 ```
 
 ---
@@ -497,7 +498,7 @@ visionboard template duplicate --template-id template-123 --json
 Vérifie la configuration et la connectivité.
 
 ```bash
-visionboard doctor
+beemmvision doctor
 ```
 
 **Vérifie :**
@@ -595,48 +596,48 @@ Le format JSON utilisé pour l'export/import des workflows.
 
 ```bash
 # 1. Se connecter
-visionboard auth login
+beemmvision auth login
 
 # 2. Voir ses projets
-visionboard project list --type workflow
+beemmvision project list --type workflow
 
 # 3. Sélectionner un projet
-visionboard project use --project-id my-project-id
+beemmvision project use --project-id my-project-id
 
 # 4. Lister les workflows existants
-visionboard workflow list
+beemmvision workflow list
 
 # 5. Générer un nouveau workflow avec l'AI
-visionboard workflow generate-and-import \
+beemmvision workflow generate-and-import \
   --workflow-id auto-pipeline \
   --prompt "Crée un workflow qui génère une image, la redimensionne à 512x512, puis applique un flou gaussien"
 
 # 6. Exécuter le workflow
-visionboard workflow run --workflow-id auto-pipeline --json | jq '.run.artifacts[].url'
+beemmvision workflow run --workflow-id auto-pipeline --json | jq '.run.artifacts[].url'
 
 # 7. Exporter le workflow pour le partager
-visionboard workflow export --workflow-id auto-pipeline > auto-pipeline.json
+beemmvision workflow export --workflow-id auto-pipeline > auto-pipeline.json
 ```
 
 ### Importer un workflow depuis un fichier
 
 ```bash
 # 1. Vérifier le projet courant
-visionboard project current
+beemmvision project current
 
 # 2. Importer le workflow (remplace le contenu existant par défaut)
-visionboard workflow import \
+beemmvision workflow import \
   --workflow-id default \
   --input ~/Downloads/mon-workflow.json
 
 # 3. Importer en mode append (ajoute les nodes à côté de l'existant)
-visionboard workflow import \
+beemmvision workflow import \
   --workflow-id default \
   --input ~/Downloads/mon-workflow-2.json \
   --mode append
 
 # 4. Vérifier l'import
-visionboard workflow list --json | jq '.workflows[] | select(.workflowId == "default")'
+beemmvision workflow list --json | jq '.workflows[] | select(.workflowId == "default")'
 ```
 
 ### Utiliser le mode JSON pour du scripting
@@ -645,7 +646,7 @@ visionboard workflow list --json | jq '.workflows[] | select(.workflowId == "def
 #!/bin/bash
 
 # Récupérer le dernier artifact généré
-artifact_url=$(visionboard workflow run --project-id X --workflow-id default --json \
+artifact_url=$(beemmvision workflow run --project-id X --workflow-id default --json \
   | jq -r '.run.artifacts[0].url')
 
 echo "Dernière image : $artifact_url"
