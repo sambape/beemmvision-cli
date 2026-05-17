@@ -1,0 +1,27 @@
+# Environment variables — never commit
+.env
+.env.local
+.env.*.local
+.env.production
+.env*.bak
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+
+# Editor / OS
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# Local agent state
+.agents/local/
